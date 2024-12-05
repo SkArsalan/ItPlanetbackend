@@ -23,7 +23,7 @@ def create_app():
     migrate.init_app(app, db)
 
     # Enable CORS with credentials
-    CORS(app, supports_credentials=True)
+    CORS(app, supports_credentials=True, origins=["*"], methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"], allow_headers=["Content-Type"])
 
     # Configure login manager
     login_manager.login_view = 'auth.login'
