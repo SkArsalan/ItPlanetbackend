@@ -59,6 +59,48 @@ def update_inventory(item_id):
 
     return jsonify({'message': 'Item updated successfully'}), 200
 
+@inventory.route('/update-stock', methods=['PUT'])
+@login_required
+def update_stock():
+    try:
+        data = request.get_json()
+        if not data:
+            print("No data received in the request")
+            return jsonify({"error": "Invalid JSON payload"}), 400
+
+        item_name = data.get("itemName")
+        quantity_sold = data.get("quantitySold")
+
+        # Validate fields
+        if not item_name or quantity_sold is None:
+            print(f"Invalid fields: {data}")
+            return jsonify({"error": "Missing 'itemName' or 'quantitySold'"}), 400
+
+        if not isinstance(quantity_sold, int) or quantity_sold <= 0:
+            print(f"Invalid quantitySold: {quantity_sold}")
+            return jsonify({"error": "'quantitySold' must be a positive integer"}), 400
+
+        # Fetch the item from the database
+        item = Inventory.query.filter_by(product_name=item_name).first()
+        if not item:
+            print(f"Item not found: {item_name}")
+            return jsonify({"error": f"Item '{item_name}' not found"}), 404
+
+        # Check stock availability
+        if item.quantity < quantity_sold:
+            print(f"Insufficient stock for {item_name}: {item.quantity} available, {quantity_sold} requested")
+            return jsonify({"error": "Insufficient stock"}), 400
+
+        # Deduct stock
+        item.quantity -= quantity_sold
+        db.session.commit()
+
+        return jsonify({"message": "Stock updated successfully", "newStock": item.quantity}), 200
+
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
 
 @inventory.route('/delete/<int:item_id>', methods=['DELETE'])
 @login_required  # Use Flask-Login for session-based authentication
@@ -89,11 +131,12 @@ def get_item(item_id):
     return jsonify({"product_name":product_name, "description":description, "price":price, 
                     "quantity":quantity, "location":location, "status":status, "categories":categories}), 200
 
-@inventory.route('/list', methods=['GET'])
-@login_required  # Use Flask-Login for session-based authentication
-def list_inventory():
-    # Retrieve all inventory items
-    items = Inventory.query.all()
+@inventory.route('/list/<string:location>', methods=['GET'])
+@login_required
+def list_inventory(location):
+
+    # Retrieve inventory items filtered by location
+    items = Inventory.query.filter_by(location=location).all()
 
     # Create a list of dictionaries to represent each item
     inventory_list = [
@@ -107,8 +150,7 @@ def list_inventory():
             "status": item.status,
             "categories": item.categories,
         }
-        for item in items
+        for item in items if item.quantity > 0
     ]
 
-    # Return the list of inventory items in JSON format
     return jsonify({'inventory': inventory_list}), 200
