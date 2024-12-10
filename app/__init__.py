@@ -46,5 +46,8 @@ def create_app():
 
     from app.inventory import inventory
     app.register_blueprint(inventory)
+    
+    from app.sales import sales
+    app.register_blueprint(sales)
 
     return app

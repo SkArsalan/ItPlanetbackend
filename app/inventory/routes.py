@@ -59,47 +59,47 @@ def update_inventory(item_id):
 
     return jsonify({'message': 'Item updated successfully'}), 200
 
-@inventory.route('/update-stock', methods=['PUT'])
-@login_required
-def update_stock():
-    try:
-        data = request.get_json()
-        if not data:
-            print("No data received in the request")
-            return jsonify({"error": "Invalid JSON payload"}), 400
+# @inventory.route('/update-stock', methods=['PUT'])
+# @login_required
+# def update_stock():
+#     try:
+#         data = request.get_json()
+#         if not data:
+#             print("No data received in the request")
+#             return jsonify({"error": "Invalid JSON payload"}), 400
 
-        item_name = data.get("itemName")
-        quantity_sold = data.get("quantitySold")
+#         item_name = data.get("itemName")
+#         quantity_sold = data.get("quantitySold")
 
-        # Validate fields
-        if not item_name or quantity_sold is None:
-            print(f"Invalid fields: {data}")
-            return jsonify({"error": "Missing 'itemName' or 'quantitySold'"}), 400
+#         # Validate fields
+#         if not item_name or quantity_sold is None:
+#             print(f"Invalid fields: {data}")
+#             return jsonify({"error": "Missing 'itemName' or 'quantitySold'"}), 400
 
-        if not isinstance(quantity_sold, int) or quantity_sold <= 0:
-            print(f"Invalid quantitySold: {quantity_sold}")
-            return jsonify({"error": "'quantitySold' must be a positive integer"}), 400
+#         if not isinstance(quantity_sold, int) or quantity_sold <= 0:
+#             print(f"Invalid quantitySold: {quantity_sold}")
+#             return jsonify({"error": "'quantitySold' must be a positive integer"}), 400
 
-        # Fetch the item from the database
-        item = Inventory.query.filter_by(product_name=item_name).first()
-        if not item:
-            print(f"Item not found: {item_name}")
-            return jsonify({"error": f"Item '{item_name}' not found"}), 404
+#         # Fetch the item from the database
+#         item = Inventory.query.filter_by(product_name=item_name).first()
+#         if not item:
+#             print(f"Item not found: {item_name}")
+#             return jsonify({"error": f"Item '{item_name}' not found"}), 404
 
-        # Check stock availability
-        if item.quantity < quantity_sold:
-            print(f"Insufficient stock for {item_name}: {item.quantity} available, {quantity_sold} requested")
-            return jsonify({"error": "Insufficient stock"}), 400
+#         # Check stock availability
+#         if item.quantity < quantity_sold:
+#             print(f"Insufficient stock for {item_name}: {item.quantity} available, {quantity_sold} requested")
+#             return jsonify({"error": "Insufficient stock"}), 400
 
-        # Deduct stock
-        item.quantity -= quantity_sold
-        db.session.commit()
+#         # Deduct stock
+#         item.quantity -= quantity_sold
+#         db.session.commit()
 
-        return jsonify({"message": "Stock updated successfully", "newStock": item.quantity}), 200
+#         return jsonify({"message": "Stock updated successfully", "newStock": item.quantity}), 200
 
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+#     except Exception as e:
+#         print(f"Unexpected error: {e}")
+#         return jsonify({"error": "Internal server error"}), 500
 
 
 @inventory.route('/delete/<int:item_id>', methods=['DELETE'])
@@ -154,3 +154,65 @@ def list_inventory(location):
     ]
 
     return jsonify({'inventory': inventory_list}), 200
+
+def update_stock_internal(item_id=None, item_name=None, quantity_sold=None):
+    """
+    Updates the stock for a given item directly in the database.
+
+    Args:
+        item_id (int): ID of the item to update.
+        item_name (str): Name of the item to update.
+        quantity_sold (int): Quantity to deduct from stock.
+
+    Returns:
+        dict: A result dictionary with "success" or "error".
+    """
+    try:
+        # Ensure at least one of item_id or item_name is provided
+        if not item_id and not item_name:
+            return {"error": "Either item_id or item_name must be provided"}, 400
+
+        # Fetch the item based on item_id or item_name
+        item = None
+        if item_id:
+            item = Inventory.query.filter_by(id=item_id).first()
+        if not item and item_name:
+            item = Inventory.query.filter_by(product_name=item_name).first()
+
+        if not item:
+            return {"error": f"Item '{item_name or item_id}' not found"}, 404
+
+        # Check stock availability
+        if item.quantity < quantity_sold:
+            return {"error": "Insufficient stock"}, 400
+
+        # Deduct stock
+        item.quantity -= quantity_sold
+        db.session.add(item)
+        db.session.commit()
+
+        return {"success": f"Stock updated for '{item_name or item_id}'", "newStock": item.quantity}, 200
+    except Exception as e:
+        print(f"Error in update_stock_internal: {e}")
+        return {"error": "Internal server error"}, 500
+
+def get_item_id_by_name(item_name):
+    """
+    Finds the item ID based on the item name from the inventory.
+    
+    Args:
+        item_name (str): The name of the item to find.
+    
+    Returns:
+        int: The item ID if found, None otherwise.
+    """
+    try:
+        # Query the Inventory table to find the item by name
+        item = Inventory.query.filter_by(product_name=item_name).first()
+        if item:
+            return item.id, item.categories
+        else:
+            return None
+    except Exception as e:
+        print(f"Error finding item by name: {e}")
+        return None
