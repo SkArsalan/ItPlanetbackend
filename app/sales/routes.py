@@ -2,7 +2,7 @@ from flask import request, jsonify
 from flask_login import login_required
 from app import db
 from app.sales import sales
-from app.models import Invoice, InvoiceItem
+from app.models import Inventory,Invoice, InvoiceItem
 from app.inventory.routes import update_stock_internal, get_item_id_by_name
 from datetime import datetime, timezone
 import requests
@@ -43,13 +43,18 @@ def save_invoice():
         # Process Items in Invoice
         for item in items:
             qty = int(item['qty'])  # Ensure quantity is an integer
-            price = float(item['price'])  # Ensure price is a float
+            selling_price = float(item['selling_price'])  # Ensure price is a float
             subtotal = float(item['subtotal'])  # Ensure subtotal is a float
 
             # Find the item_id by item_name
             item_id, category = get_item_id_by_name(item['item_name'])
             if not item_id:
                 return jsonify({"error": f"Item with name '{item['item_name']}' not found in inventory"}), 400
+
+            # Fetch the inventory item to get purchase price
+            inventory_item = Inventory.query.get(item_id)
+            if not inventory_item:
+                return jsonify({"error": f"Inventory item with ID {item_id} not found"}), 400
 
             # Create an InvoiceItem instance
             invoice_item = InvoiceItem(
@@ -59,10 +64,15 @@ def save_invoice():
                 description=item.get('description', ''),
                 category=category,
                 qty=qty,
-                price=price,
+                selling_price=selling_price,
                 subtotal=subtotal,
+                profit=0.0,  # Initialize profit to 0 (it will be updated below)
                 date=invoice_date
             )
+
+            # Set the profit for this item
+            invoice_item.set_profit()  # Calculate and set profit before committing
+
             db.session.add(invoice_item)
 
             # Update Stock

@@ -22,10 +22,11 @@ class Inventory(db.Model):
     description = db.Column(db.String(255), nullable=True)
     quantity = db.Column(db.Integer, default=0)
     status = db.Column(db.String(50), nullable=False, default=False)
-    price = db.Column(db.Float, nullable=False)
+    purchase_price = db.Column(db.Float, nullable=False)
+    selling_price = db.Column(db.Float, nullable=False)
     location = db.Column(db.String(50), nullable=True)
     categories = db.Column(db.String(50), nullable=True)
-    
+    date = db.Column(db.Date, nullable=False, default=datetime.now(timezone.utc))
     def __repr__(self):
         return f"Inventory('{self.name}', '{self.price}', '{self.quantity}')"
 
@@ -50,6 +51,18 @@ class InvoiceItem(db.Model):
     description = db.Column(db.Text, nullable=True)
     category = db.Column(db.String(50), nullable=True)
     qty = db.Column(db.Integer, nullable=False)
-    price = db.Column(db.Float, nullable=False)
+    selling_price = db.Column(db.Float, nullable=False)
     subtotal = db.Column(db.Float, nullable=False)
-    date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    profit = db.Column(db.Float, nullable=False)
+    date = db.Column(db.Date, nullable=False, default=datetime.now(timezone.utc))
+    
+    def calculate_profit(self):
+        
+        inventory_item = Inventory.query.get(self.item_id)
+        if inventory_item:
+            
+            return (self.selling_price - inventory_item.purchase_price) * self.qty
+        return 0.0
+    
+    def set_profit(self):
+        self.profit = self.calculate_profit()

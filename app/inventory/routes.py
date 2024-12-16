@@ -3,6 +3,7 @@ from flask_login import login_required
 from app import db
 from app.inventory import inventory
 from app.models import Inventory
+from datetime import datetime, timezone
 
 
 @inventory.route('/add', methods=['POST'])
@@ -13,23 +14,29 @@ def add_inventory():
     description = data.get('description')
     quantity = data.get('quantity')
     status = data.get('status')
-    price = data.get('price')
+    purchase_price = data.get('purchase_price')
+    selling_price = data.get('selling_price')
     categories = data.get('categories')
     location = data.get('location')
+    
+    # Use a different variable name instead of 'date'
+    inventory_date = data.get('date', datetime.now(timezone.utc))
 
     # Validation
-    if not product_name or not price or quantity is None:
+    if not product_name or not selling_price or quantity is None:
         return jsonify({'message': 'Missing fields'}), 400
 
     # Create and add new inventory item
     item = Inventory(
         product_name=product_name,
         description=description,
-        price=price,
+        purchase_price=purchase_price,
+        selling_price=selling_price,
         quantity=quantity,
         location=location,
         status=status,
         categories=categories,
+        date=inventory_date  # Use the new variable name
     )
     db.session.add(item)
     db.session.commit()
@@ -48,7 +55,8 @@ def update_inventory(item_id):
     # Update fields if provided in the request, else keep existing value
     item.product_name = data.get('product_name', item.product_name)
     item.description = data.get('description', item.description)
-    item.price = data.get('price', item.price)
+    item.purchase_price = data.get('purchase_price', item.purchase_price)
+    item.selling_price = data.get('selling_price', item.selling_price)
     item.quantity = data.get('quantity', item.quantity)
     item.location = data.get('location', item.location)
     item.status = data.get('status', item.status)
@@ -122,14 +130,15 @@ def get_item(item_id):
     
     product_name = item.product_name
     description = item.description
-    price = item.price
+    purchase_price = item.purchase_price
+    selling_price = item.selling_price
     quantity = item.quantity
     location = item.location
     status = item.status
     categories = item.categories
     
-    return jsonify({"product_name":product_name, "description":description, "price":price, 
-                    "quantity":quantity, "location":location, "status":status, "categories":categories}), 200
+    return jsonify({"product_name":product_name, "description":description, "selling_price":selling_price, 
+                    "quantity":quantity, "location":location, "status":status, "categories":categories, "purchase_price":purchase_price}), 200
 
 @inventory.route('/list/<string:location>', methods=['GET'])
 @login_required
@@ -144,7 +153,8 @@ def list_inventory(location):
             "id": item.id,
             "product_name": item.product_name,
             "description": item.description,
-            "price": item.price,
+            "purchase_price": item.purchase_price,
+            "selling_price": item.selling_price,
             "quantity": item.quantity,
             "location": item.location,
             "status": item.status,
