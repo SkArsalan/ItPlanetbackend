@@ -49,5 +49,8 @@ def create_app():
     
     from app.sales import sales
     app.register_blueprint(sales)
+    
+    from app.quotation import quotation
+    app.register_blueprint(quotation)
 
     return app

@@ -32,7 +32,7 @@ class Inventory(db.Model):
 
 class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    client_name = db.Column(db.String(100), nullable=False)
+    customer_name = db.Column(db.String(100), nullable=False)
     invoice_date = db.Column(db.Date, nullable=False, default=datetime.now(timezone.utc))
     invoice_number = db.Column(db.String(50), unique=True, nullable=False)
     mobile_number = db.Column(db.String(15), nullable=False)
@@ -41,6 +41,7 @@ class Invoice(db.Model):
     paid = db.Column(db.Float, nullable=False, default=0.0)  # Amount already paid
     due = db.Column(db.Float, nullable=False)  # Remaining amount (calculated as total - paid)
     created_by = db.Column(db.String(50), nullable=False)
+    location = db.Column(db.String(50), nullable=True)
     items = db.relationship('InvoiceItem', backref='invoice', lazy=True)
     
 class InvoiceItem(db.Model):
@@ -49,20 +50,50 @@ class InvoiceItem(db.Model):
     item_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
     item_name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    category = db.Column(db.String(50), nullable=True)
-    qty = db.Column(db.Integer, nullable=False)
+    categories = db.Column(db.String(50), nullable=True)  # Changed from 'category' to 'categories'
+    quantity = db.Column(db.Integer, nullable=False)  # Changed from 'qty' to 'quantity'
     selling_price = db.Column(db.Float, nullable=False)
     subtotal = db.Column(db.Float, nullable=False)
     profit = db.Column(db.Float, nullable=False)
     date = db.Column(db.Date, nullable=False, default=datetime.now(timezone.utc))
     
     def calculate_profit(self):
-        
         inventory_item = Inventory.query.get(self.item_id)
         if inventory_item:
-            
-            return (self.selling_price - inventory_item.purchase_price) * self.qty
+            return (self.selling_price - inventory_item.purchase_price) * self.quantity  # Adjusted for 'quantity'
         return 0.0
     
     def set_profit(self):
         self.profit = self.calculate_profit()
+
+        
+class Quotation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    customer_name = db.Column(db.String(100), nullable=False)
+    quotation_number = db.Column(db.String(100), unique=True, nullable=False)
+    categories = db.Column(db.String(50), nullable=False)
+    mobile_number = db.Column(db.String(15), nullable=False)
+    quotation_date = db.Column(db.Date, nullable=False)
+    total = db.Column(db.Float, nullable=False)
+    created_by = db.Column(db.String(50), nullable=False)
+    location = db.Column(db.String(50), nullable=True)
+    quotation_items = db.relationship(
+        'QuotationItem', 
+        backref='quotation', 
+        lazy=True, 
+        foreign_keys='QuotationItem.quotation_id'
+    )
+class QuotationItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    quantity = db.Column(db.Integer, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    sub_total = db.Column(db.Float, nullable=False)
+    quotation_id = db.Column(db.Integer, db.ForeignKey('quotation.id'), nullable=False)
+    quotation_number = db.Column(db.String(100), db.ForeignKey('quotation.quotation_number'), nullable=False)
+    date = db.Column(db.Date, nullable=False, default=datetime.now(timezone.utc))
+    
+class Section(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    categories = db.Column(db.String(50), nullable=False)
