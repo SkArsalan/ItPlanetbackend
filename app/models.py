@@ -50,7 +50,7 @@ class InvoiceItem(db.Model):
     item_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
     item_name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    categories = db.Column(db.String(50), nullable=True)  # Changed from 'category' to 'categories'
+    categories = db.Column(db.String(50),db.ForeignKey('section.categories', ondelete='CASCADE'), nullable=True)  # Changed from 'category' to 'categories'
     quantity = db.Column(db.Integer, nullable=False)  # Changed from 'qty' to 'quantity'
     selling_price = db.Column(db.Float, nullable=False)
     subtotal = db.Column(db.Float, nullable=False)
