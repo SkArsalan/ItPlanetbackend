@@ -52,5 +52,8 @@ def create_app():
     
     from app.quotation import quotation
     app.register_blueprint(quotation)
+    
+    from app.section import section
+    app.register_blueprint(section)
 
     return app

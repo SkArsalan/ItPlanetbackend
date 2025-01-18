@@ -25,7 +25,7 @@ class Inventory(db.Model):
     purchase_price = db.Column(db.Float, nullable=False)
     selling_price = db.Column(db.Float, nullable=False)
     location = db.Column(db.String(50), nullable=True)
-    categories = db.Column(db.String(50), nullable=True)
+    categories = db.Column(db.String(50),db.ForeignKey('section.categories', ondelete='CASCADE'), nullable=True)
     date = db.Column(db.Date, nullable=False, default=datetime.now(timezone.utc))
     def __repr__(self):
         return f"Inventory('{self.name}', '{self.price}', '{self.quantity}')"
@@ -71,7 +71,9 @@ class Quotation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     customer_name = db.Column(db.String(100), nullable=False)
     quotation_number = db.Column(db.String(100), unique=True, nullable=False)
-    categories = db.Column(db.String(50), nullable=False)
+    categories = db.Column(db.String(50), 
+                           db.ForeignKey('section.categories', ondelete='CASCADE'),
+                           nullable=False)
     mobile_number = db.Column(db.String(15), nullable=False)
     quotation_date = db.Column(db.Date, nullable=False)
     total = db.Column(db.Float, nullable=False)

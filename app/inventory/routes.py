@@ -194,11 +194,19 @@ def get_item_or_404(item_id):
     return item
 
 
-def get_inventory_list(location):
-    items = Inventory.query.filter_by(location=location)
+def get_inventory_list(location, categories):
+    # Start filtering by location
+    query = Inventory.query.filter_by(location=location)
     
-    items = items.filter(Inventory.quantity > 0)
-    return items.all()
+    # If categories is provided, filter by categories as well
+    if categories:
+        query = query.filter_by(categories=categories)
+    
+    # Filter by quantity > 0
+    query = query.filter(Inventory.quantity > 0)
+    
+    # Execute the query and return the results
+    return query.all()
 
 
 @inventory.route('/add', methods=['POST'])
@@ -268,12 +276,12 @@ def get_item(item_id):
     }
     return jsonify(item_data), 200
 
-
 @inventory.route('/list/<string:location>', methods=['GET'])
+@inventory.route('/list/<string:location>/<string:categories>', methods=['GET'])
 @login_required
-def list_inventory(location):
+def list_inventory(location, categories=None):
     
-    items = get_inventory_list(location)
+    items = get_inventory_list(location, categories)
     inventory_list = [
         {
             "id": item.id,

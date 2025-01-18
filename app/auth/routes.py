@@ -52,7 +52,7 @@ def login():
             'message': 'Logged in successfully',
              'user': {
                 'username': user.full_name,
-                'location': user.location
+                'location': user.location,
                 }
             }), 200
     else:

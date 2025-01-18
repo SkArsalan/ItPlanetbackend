@@ -60,11 +60,11 @@ def add_quotation():
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-@quotation.route('/quotation-list/<string:location>')
+@quotation.route('/quotation-list/<string:location>/<string:categories>')
 @login_required
-def quotation_list(location):
+def quotation_list(location, categories):
     try:
-        quotations = Quotation.query.filter_by(location=location).all()
+        quotations = Quotation.query.filter_by(location=location, categories=categories).all()
         if not quotations:
             return jsonify({"message": "No Quotations"}), 404
         
@@ -84,4 +84,47 @@ def quotation_list(location):
     except Exception as e:
         return jsonify({
             "error" :"An error occurred", "details": str(e)
+        }), 500
+        
+@quotation.route('/quotation-details/<int:id>', methods=['GET'])
+@login_required
+def quotation_details(id):
+    try:
+        # Fetch the quotation detail by ID
+        quotation_detail = Quotation.query.filter_by(id=id).first()
+        if not quotation_detail:
+            return jsonify({"message": "No Quotation found"}), 404
+
+        # Fetch all the items associated with the quotation
+        quotation_product_detail = QuotationItem.query.filter_by(quotation_id=id).all()
+
+        # Format the data for the response
+        products = [
+            {
+                "id": item.id,
+                "product_name": item.product_name,
+                "description": item.description,
+                "quantity": item.quantity,
+                "price": item.price,
+                "subtotal": item.sub_total,  # Calculate subtotal dynamically
+            }
+            for item in quotation_product_detail
+        ]
+
+        # Build the response object
+        response = {
+            "customer_name": quotation_detail.customer_name,
+            "quotation_number": quotation_detail.quotation_number,
+            "mobile_number": quotation_detail.mobile_number,
+            "date": quotation_detail.quotation_date,
+            "products": products,
+            "total": quotation_detail.total,
+            "created_by": quotation_detail.created_by
+        }
+        return jsonify(response), 200
+
+    except Exception as e:
+        return jsonify({
+            "error": "An error occurred",
+            "details": str(e)
         }), 500

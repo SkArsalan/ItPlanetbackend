@@ -191,9 +191,9 @@ def save_invoice():
 
 
 
-@sales.route('/invoice-details', methods=['GET'])
+@sales.route('/invoice-list', methods=['GET'])
 @login_required
-def invoice_details():
+def invoice_list():
     try:
         invoices = Invoice.query.filter_by().all()
         if not invoices:
@@ -217,3 +217,47 @@ def invoice_details():
 
     except Exception as e:
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
+
+@sales.route('/invoice-details/<int:id>', methods=['GET'])
+@login_required
+def invoice_details(id):
+    try:
+        # Fetch the quotation detail by ID
+        invoice_detail = Invoice.query.filter_by(id=id).first()
+        if not invoice_detail:
+            return jsonify({"message": "No invoice found"}), 404
+
+        # Fetch all the items associated with the quotation
+        invoice_product_detail = InvoiceItem.query.filter_by(invoice_id=id).all()
+
+        # Format the data for the response
+        products = [
+            {
+                "id": item.id,
+                "product_name": item.item_name,
+                "description": item.description,
+                "quantity": item.quantity,
+                "price": item.selling_price,
+                "subtotal": item.subtotal,  # Calculate subtotal dynamically
+            }
+            for item in invoice_product_detail
+        ]
+
+        # Build the response object
+        response = {
+            "customer_name": invoice_detail.customer_name,
+            "invoice_number": invoice_detail.invoice_number,
+            "mobile_number": invoice_detail.mobile_number,
+            "date": invoice_detail.invoice_date,
+            "products": products,
+            "total": invoice_detail.total,
+            "paid": invoice_detail.paid,
+            "created_by": invoice_detail.created_by
+        }
+        return jsonify(response), 200
+
+    except Exception as e:
+        return jsonify({
+            "error": "An error occurred",
+            "details": str(e)
+        }), 500
