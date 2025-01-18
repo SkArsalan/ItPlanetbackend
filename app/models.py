@@ -98,4 +98,4 @@ class QuotationItem(db.Model):
     
 class Section(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    categories = db.Column(db.String(50), nullable=False)
+    categories = db.Column(db.String(50), nullable=False, unique=True)
