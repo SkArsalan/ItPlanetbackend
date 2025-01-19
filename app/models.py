@@ -42,12 +42,12 @@ class Invoice(db.Model):
     due = db.Column(db.Float, nullable=False)  # Remaining amount (calculated as total - paid)
     created_by = db.Column(db.String(50), nullable=False)
     location = db.Column(db.String(50), nullable=True)
-    items = db.relationship('InvoiceItem', backref='invoice', lazy=True)
+    items = db.relationship('InvoiceItem', backref='invoice', lazy=True, cascade="all, delete-orphan")
     
 class InvoiceItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=False)
+    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id', ondelete='CASCADE'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('inventory.id', ondelete='SET NULL'), nullable=True)
     item_name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
     categories = db.Column(db.String(50),db.ForeignKey('section.categories', ondelete='CASCADE'), nullable=True)  # Changed from 'category' to 'categories'
@@ -83,7 +83,8 @@ class Quotation(db.Model):
         'QuotationItem', 
         backref='quotation', 
         lazy=True, 
-        foreign_keys='QuotationItem.quotation_id'
+        cascade="all, delete-orphan", 
+        foreign_keys='QuotationItem.quotation_id'  # Specify the foreign key column
     )
 class QuotationItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -92,8 +93,8 @@ class QuotationItem(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
     price = db.Column(db.Float, nullable=False)
     sub_total = db.Column(db.Float, nullable=False)
-    quotation_id = db.Column(db.Integer, db.ForeignKey('quotation.id'), nullable=False)
-    quotation_number = db.Column(db.String(100), db.ForeignKey('quotation.quotation_number'), nullable=False)
+    quotation_id = db.Column(db.Integer, db.ForeignKey('quotation.id', ondelete='CASCADE'), nullable=False)  # Cascade delete for Quotation
+    quotation_number = db.Column(db.String(100), db.ForeignKey('quotation.quotation_number', ondelete='CASCADE'), nullable=False)
     date = db.Column(db.Date, nullable=False, default=datetime.now(timezone.utc))
     
 class Section(db.Model):
