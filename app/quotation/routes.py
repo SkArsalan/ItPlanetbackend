@@ -128,3 +128,11 @@ def quotation_details(id):
             "error": "An error occurred",
             "details": str(e)
         }), 500
+
+@quotation.route('/delete-quotation/<int:id>', methods=['DELETE'])
+@login_required
+def delete_quotation(id):
+    quotation = Quotation.query.get_or_404(id)
+    db.session.delete(quotation)
+    db.session.commit()
+    return jsonify({'message': 'Quotation deleted successfully'}), 200

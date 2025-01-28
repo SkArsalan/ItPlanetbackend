@@ -7,93 +7,6 @@ from app.inventory.routes import update_stock_internal, get_item_by_id
 from datetime import datetime, timezone
 
 
-# @sales.route('/save-invoice', methods=['POST'])
-# @login_required
-# def save_invoice():
-#     try:
-#         data = request.json
-
-#         # Extract Invoice Details
-#         customer_name = data.get('customer_name')
-#         invoice_date = data.get('invoiceDate', datetime.now(timezone.utc))
-#         invoice_number = data.get('invoiceNumber')
-#         mobile_number = data.get('MobileNumber')
-#         items = data.get('items', [])
-#         total = float(data.get('total', 0))  # Ensure total is a float
-#         paid = float(data.get('paid', 0))  # Amount already paid
-#         created_by = data.get('createdBy', 'Admin')  # Default to 'Admin' if not provided
-#         due = total - paid  # Calculate due amount
-#         payment_status = "Paid" if due <= 0 else "Pending" # Set payment status
-#         location = data.get('location')
-
-#         # Create an Invoice instance
-#         invoice = Invoice(
-#             customer_name=customer_name,
-#             invoice_date=invoice_date,
-#             invoice_number=invoice_number,
-#             mobile_number=mobile_number,
-#             total=total,
-#             paid=paid,
-#             due=due,
-#             payment_status=payment_status,
-#             created_by=created_by,
-#             location=location
-#         )
-#         db.session.add(invoice)
-#         db.session.commit()  # Save the invoice to get its ID
-
-#         # Process Items in Invoice
-#         for item in items:
-#             qty = int(item['qty'])  # Ensure quantity is an integer
-#             selling_price = float(item['selling_price'])  # Ensure price is a float
-#             subtotal = float(item['subtotal'])  # Ensure subtotal is a float
-
-#             # Find the category by item ID
-#             categories = get_item_by_id(item['item_id'])
-#             if not categories:
-#                 return jsonify({"error": f"Item with ID '{item['item_id']}' not found in inventory"}), 400
-
-#             # Fetch the inventory item to get purchase price
-#             inventory_item = Inventory.query.get(item['item_id'])
-#             if not inventory_item:
-#                 return jsonify({"error": f"Inventory item with ID {item['item_id']} not found"}), 400
-
-#             # Create an InvoiceItem instance
-#             invoice_item = InvoiceItem(
-#                 invoice_id=invoice.id,
-#                 item_id=item['item_id'],
-#                 item_name=item['item_name'],
-#                 description=item.get('description', ''),
-#                 categories=categories,
-#                 quantity=qty,
-#                 selling_price=selling_price,
-#                 subtotal=subtotal,
-#                 profit=0.0,  # Initialize profit to 0 (it will be updated below)
-#                 date=invoice_date
-#             )
-
-#             # Set the profit for this item
-#             invoice_item.set_profit()  # Calculate and set profit before committing
-
-#             db.session.add(invoice_item)
-
-#             # Update Stock
-#             stock_result, status_code = update_stock_internal(
-#                 item_id=item['item_id'], quantity_sold=qty
-#             )
-#             if status_code != 200:
-#                 db.session.rollback()
-#                 return jsonify({"error": stock_result['error']}), status_code
-
-#         db.session.commit()  # Commit all changes
-
-#         return jsonify({"message": "Invoice saved successfully"}), 201
-
-#     except Exception as e:
-#         db.session.rollback()  # Rollback in case of any errors
-#         print(f"Unexpected error in save-invoice: {e}")
-#         return jsonify({"error": "Internal server error"}), 500
-
 @sales.route('/save-invoice', methods=['POST'])
 @login_required
 def save_invoice():
@@ -261,3 +174,56 @@ def invoice_details(id):
             "error": "An error occurred",
             "details": str(e)
         }), 500
+
+@sales.route('/due-payments/<int:id>', methods=['GET'])
+@login_required
+def due_payments(id):
+    try:
+        invoice_dues = Invoice.query.filter_by(id=id).first()
+        response = invoice_dues.due
+        print(response)
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        return jsonify({
+            "error": "An error occurred",
+            "details": str(e)
+        }), 500
+        
+
+@sales.route('/update-due-payments/<int:id>', methods=['PUT'])
+@login_required
+def update_due_payments(id):
+    try:
+        data = request.get_json()
+        print(data)
+        invoice = Invoice.query.filter_by(id=id).first()
+        
+        if not invoice:
+            return jsonify({"error": "Invoice not found"}), 404
+        
+        if data['due'] == 0:
+            invoice.payment_status = "Paid"  # Corrected 'payemnt_status'
+            invoice.paid += data['paid']
+            invoice.due = data['due']
+        else:
+            invoice.due = data['due']
+            invoice.paid += data['paid']
+        
+        db.session.commit()  # Don't forget to commit the changes to the DB
+        return jsonify({"message": "Payment updated successfully"}), 200
+
+    except Exception as e:
+        return jsonify({
+            "error": "An error occurred",
+            "details": str(e)
+        }), 500
+
+@sales.route('/delete-invoice/<int:id>', methods=['DELETE'])
+@login_required
+def delete_invoice(id):
+    invoice = Invoice.query.get_or_404(id)
+    db.session.delete(invoice)
+    db.session.commit()
+    return jsonify({'message': 'Invoice deleted successfully'}), 200
