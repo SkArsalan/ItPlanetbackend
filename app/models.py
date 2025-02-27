@@ -96,6 +96,37 @@ class QuotationItem(db.Model):
     quotation_id = db.Column(db.Integer, db.ForeignKey('quotation.id', ondelete='CASCADE'), nullable=False)  # Cascade delete for Quotation
     quotation_number = db.Column(db.String(100), db.ForeignKey('quotation.quotation_number', ondelete='CASCADE'), nullable=False)
     date = db.Column(db.Date, nullable=False, default=datetime.now(timezone.utc))
+
+class Purchase(db.Model):
+    id = db.Column(db.Integer,primary_key=True)
+    supplier_name = db.Column(db.String(50), nullable=False)
+    purchase_number = db.Column(db.String(100), unique=True, nullable=False)
+    purchase_date = db.Column(db.Date, nullable=False)
+    mobile_number = db.Column(db.String(15), nullable=False)
+    payment_status = db.Column(db.String(20), nullable=False, default="Pending")
+    total = db.Column(db.Float, nullable=False)
+    paid = db.Column(db.Float, nullable=False, default=0.0)  # Amount already paid
+    due = db.Column(db.Float, nullable=False)  # Remaining amount (calculated as total - paid)
+    created_by = db.Column(db.String(50), nullable=False)
+    location = db.Column(db.String(50), nullable=True)
+    purchase_items = db.relationship(
+       'PurchaseItem', 
+        backref='purchase', 
+        lazy=True, 
+        cascade="all, delete-orphan", 
+        foreign_keys='PurchaseItem.purchase_id'  # Specify the foreign key column
+    )
+    
+class PurchaseItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    quantity = db.Column(db.Integer, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    sub_total = db.Column(db.Float, nullable=False)
+    purchase_id = db.Column(db.Integer, db.ForeignKey('purchase.id', ondelete='CASCADE'), nullable=False)  # Cascade delete for purchase
+    purchase_number = db.Column(db.String(100), db.ForeignKey('purchase.purchase_number', ondelete='CASCADE'), nullable=False)
+    date = db.Column(db.Date, nullable=False, default=datetime.now(timezone.utc))
     
 class Section(db.Model):
     id = db.Column(db.Integer, primary_key=True)

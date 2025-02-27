@@ -56,6 +56,9 @@ def create_app():
     from app.citation import citation
     app.register_blueprint(citation)
     
+    from app.purchase import purchase
+    app.register_blueprint(purchase)
+    
     from app.section import section
     app.register_blueprint(section)
 

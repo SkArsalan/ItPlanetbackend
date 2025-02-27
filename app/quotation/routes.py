@@ -87,7 +87,7 @@ def quotation_list(location, categories):
         }), 500
         
 @quotation.route('/quotation-details/<int:id>', methods=['GET'])
-@login_required
+# @login_required
 def quotation_details(id):
     try:
         # Fetch the quotation detail by ID
